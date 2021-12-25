@@ -9,7 +9,7 @@ import os
 
 import torch
 from mongo_connect import mongo_config, import2mongo, export2mongo
-import time
+
 def create_app():
     app = FastAPI(debug=True)
     app.mount("/static", StaticFiles(directory="apps/static"), name="static")

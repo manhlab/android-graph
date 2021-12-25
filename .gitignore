@@ -1,3 +1,7 @@
-.apk
-.csv
-.ipynb
+*.apk
+*.csv
+*.ipynb
+__pycache__/*
+*/__pycache__
+.env
+*.pth
