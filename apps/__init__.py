@@ -4,41 +4,49 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 from flask import Flask
-from flask_login import LoginManager
-from flask_sqlalchemy import SQLAlchemy
 from importlib import import_module
-
-
-db = SQLAlchemy()
-login_manager = LoginManager()
-
-
-def register_extensions(app):
-    db.init_app(app)
-    login_manager.init_app(app)
-
-
-def register_blueprints(app):
-    for module_name in ('authentication', 'home'):
-        module = import_module('apps.{}.routes'.format(module_name))
-        app.register_blueprint(module.blueprint)
-
-
-def configure_database(app):
-
-    @app.before_first_request
-    def initialize_database():
-        db.create_all()
-
-    @app.teardown_request
-    def shutdown_session(exception=None):
-        db.session.remove()
+from flask import render_template, request
+from jinja2 import TemplateNotFound
 
 
 def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
-    register_extensions(app)
-    register_blueprints(app)
-    configure_database(app)
+
+    @app.route("/index")
+    def index():
+
+        return render_template("home/index.html", segment="index")
+
+    @app.route("/<template>")
+    def route_template(template):
+
+        try:
+
+            if not template.endswith(".html"):
+                template += ".html"
+
+            # Detect the current page
+            segment = get_segment(request)
+
+            # Serve the file (if exists) from app/templates/home/FILE.html
+            return render_template("home/" + template, segment=segment)
+
+        except TemplateNotFound:
+            return render_template("home/page-404.html"), 404
+
+        except:
+            return render_template("home/page-500.html"), 500
+
     return app
+
+
+# Helper - Extract current page name from request
+def get_segment(request):
+    try:
+        segment = request.path.split("/")[-1]
+        if segment == "":
+            segment = "index"
+        return segment
+    except:
+        return None

@@ -10,9 +10,9 @@ from torch.utils.data import DataLoader
 from core.dataset import MalwareDataset
 
 
-def stratified_split_dataset(samples: List[str],
-                             labels: Dict[str, int],
-                             ratios: Tuple[float, float]) -> Tuple[List[str], List[str]]:
+def stratified_split_dataset(
+    samples: List[str], labels: Dict[str, int], ratios: Tuple[float, float]
+) -> Tuple[List[str], List[str]]:
     """
     Split the dataset into train and validation datasets based on the given ratio
     :param samples: List of file names
@@ -49,15 +49,15 @@ class MalwareDataModule(pl.LightningDataModule):
     """
 
     def __init__(
-            self,
-            train_dir: Union[str, Path],
-            test_dir: Union[str, Path],
-            batch_size: int,
-            split_ratios: Tuple[float, float],
-            consider_features: List[str],
-            num_workers: int,
-            pin_memory: bool,
-            split_train_val: bool,
+        self,
+        train_dir: Union[str, Path],
+        test_dir: Union[str, Path],
+        batch_size: int,
+        split_ratios: Tuple[float, float],
+        consider_features: List[str],
+        num_workers: int,
+        pin_memory: bool,
+        split_train_val: bool,
     ):
         """
         Creates the MalwareDataModule
@@ -74,16 +74,20 @@ class MalwareDataModule(pl.LightningDataModule):
         super().__init__()
         self.train_dir = Path(train_dir)
         if not self.train_dir.exists():
-            raise FileNotFoundError(f"Train directory {train_dir} does not exist. Could not read from it.")
+            raise FileNotFoundError(
+                f"Train directory {train_dir} does not exist. Could not read from it."
+            )
         self.test_dir = Path(test_dir)
         if not self.test_dir.exists():
-            raise FileNotFoundError(f"Test directory {test_dir} does not exist. Could not read from it.")
+            raise FileNotFoundError(
+                f"Test directory {test_dir} does not exist. Could not read from it."
+            )
         self.dataloader_kwargs = {
-            'num_workers': num_workers,
-            'batch_size': batch_size,
-            'pin_memory': pin_memory,
-            'collate_fn': collate,
-            'drop_last': True
+            "num_workers": num_workers,
+            "batch_size": batch_size,
+            "pin_memory": pin_memory,
+            "collate_fn": collate,
+            "drop_last": True,
         }
         self.split_ratios = split_ratios
         self.split = split_train_val
@@ -99,7 +103,7 @@ class MalwareDataModule(pl.LightningDataModule):
         """
         base_path = Path(path)
         if not base_path.exists():
-            raise FileNotFoundError(f'{base_path} does not exist')
+            raise FileNotFoundError(f"{base_path} does not exist")
         apk_list = sorted([x for x in base_path.iterdir()])
         samples = []
         labels = {}
@@ -112,7 +116,9 @@ class MalwareDataModule(pl.LightningDataModule):
         samples, labels = self.get_samples(self.train_dir)
         test_samples, test_labels = self.get_samples(self.test_dir)
         if self.split:
-            train_samples, val_samples = self.splitter(samples, labels, self.split_ratios)
+            train_samples, val_samples = self.splitter(
+                samples, labels, self.split_ratios
+            )
             val_dir = self.train_dir
             val_labels = labels
         else:
@@ -123,19 +129,19 @@ class MalwareDataModule(pl.LightningDataModule):
             source_dir=self.train_dir,
             samples=train_samples,
             labels=labels,
-            consider_features=self.consider_features
+            consider_features=self.consider_features,
         )
         self.val_dataset = MalwareDataset(
             source_dir=val_dir,
             samples=val_samples,
             labels=val_labels,
-            consider_features=self.consider_features
+            consider_features=self.consider_features,
         )
         self.test_dataset = MalwareDataset(
             source_dir=self.test_dir,
             samples=test_samples,
             labels=test_labels,
-            consider_features=self.consider_features
+            consider_features=self.consider_features,
         )
 
     def train_dataloader(self):

@@ -38,28 +38,16 @@
 
   <!-- Specific CSS goes HERE -->
   {% block stylesheets %}{% endblock stylesheets %}
-
 </head>
-
 <body class="">
-
-  {% include "includes/sidenav.html" %}
-
   <div class="main-content" id="panel">
-
     {% include "includes/navigation.html" %}
-
     {% block content %}{% endblock content %}
-
   </div>
-
   {% include "includes/scripts.html" %}
-
   <!-- Specific JS goes HERE --> 
   {% block javascripts %}{% endblock javascripts %}
-
   <script src="/static/assets/js/argon.js?v=1.2.0"></script>
-
 </body>
 
 </html>
