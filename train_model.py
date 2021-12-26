@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
-
-import hydra
+import yaml
 import wandb
 import torch
 from omegaconf import DictConfig
@@ -14,7 +13,6 @@ from core.data_module import MalwareDataModule
 from core.model import MalwareDetector
 
 
-@hydra.main(config_path="config", config_name="conf")
 def train_model(cfg: DictConfig) -> None:
     data_module = MalwareDataModule(**cfg["data"])
 
@@ -91,4 +89,6 @@ def train_model(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    train_model()
+    with open("config/config.yaml", 'r') as f:
+       config = yaml.safe_load(f) 
+    train_model(config)

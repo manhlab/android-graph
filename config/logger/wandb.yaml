@@ -1,9 +1,9 @@
 # @package _group_
 name: wandb
 args:
-  project: malware_homo
+  project: android_graph
   log_model: true
 hparams:
-  convolution_algorithm:  ${model.convolution_algorithm}
-  features: ${features.name}
-  convolution_count: ${model.convolution_count}
+  convolution_algorithm: GraphConv
+  features: method_summary
+  convolution_count: 2
