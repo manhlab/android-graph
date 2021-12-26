@@ -11,7 +11,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.metrics.metric import Metric
 
 from core.model import MalwareDetector
-from core.utils import plot_confusion_matrix, plot_curve
+from scripts.utils import plot_confusion_matrix, plot_curve
 
 
 class InputMonitor(Callback):

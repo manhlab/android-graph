@@ -1,5 +1,4 @@
 import argparse
-import json
 import multiprocessing
 import os
 import sys
@@ -262,46 +261,14 @@ if __name__ == "__main__":
         help="The directory to store processed graphs",
         required=True,
     )
-    parser.add_argument(
-        "--override", help="Override existing processed files", action="store_true"
-    )
-    parser.add_argument(
-        "--dry", help="Run without actual processing", action="store_true"
-    )
-    parser.add_argument(
-        "--n-jobs",
-        default=multiprocessing.cpu_count(),
-        help="Number of jobs to be used for processing",
-    )
-    parser.add_argument("--limit", help="Run for n apks", default=-1)
     args = parser.parse_args()
     source_dir = Path(args.source_dir)
-    if not source_dir.exists():
-        raise FileNotFoundError(f"{source_dir} not found")
     dest_dir = Path(args.dest_dir)
-    if not dest_dir.exists():
-        raise FileNotFoundError(f"{dest_dir} not found")
-    n_jobs = args.n_jobs
-    if n_jobs < 2:
-        print(
-            f"n_jobs={n_jobs} is too less. Switching to number of CPUs in this machine instead"
-        )
-        n_jobs = multiprocessing.cpu_count()
+    n_jobs = multiprocessing.cpu_count()
     files = [x for x in source_dir.iterdir() if x.is_file()]
-    source_files = set([x.stem for x in files])
-    dest_files = set([x.name for x in dest_dir.iterdir() if x.is_file()])
-    unprocessed = [source_dir / f"{x}.apk" for x in source_files - dest_files]
-    print(f"Only {len(unprocessed)} out of {len(source_files)} remain to be processed")
-    if args.override:
-        print(
-            f"--override specified. Ignoring {len(source_files) - len(unprocessed)} processed files"
-        )
-        unprocessed = [source_dir / f"{x}.apk" for x in source_files]
+    source_files = set([x for x in files])
+    unprocessed = [source_dir / f"{x}" for x in source_files]
+    print(f"APK: {len(source_files)}")
     print(f"Starting dataset processing with {n_jobs} Jobs")
-    limit = int(args.limit)
-    if limit != -1:
-        print(f"Limiting dataset processing to {limit} apks.")
-        unprocessed = unprocessed[:limit]
-    if not args.dry:
-        J.Parallel(n_jobs=n_jobs)(J.delayed(process)(x, dest_dir) for x in unprocessed)
+    J.Parallel(n_jobs=n_jobs)(J.delayed(process)(x, dest_dir) for x in unprocessed)
     print("DONE")
