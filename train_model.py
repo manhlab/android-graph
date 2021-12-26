@@ -8,10 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-from core.callbacks import InputMonitor, BestModelTagger, MetricsLogger
-from core.data_module import MalwareDataModule
-from core.model import MalwareDetector
-
+from core import *
 
 def train_model(cfg: DictConfig) -> None:
     data_module = MalwareDataModule(**cfg["data"])
