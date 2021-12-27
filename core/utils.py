@@ -4,7 +4,16 @@ import plotly.express as px
 import pytorch_lightning.metrics.functional as M
 import seaborn as sns
 
-
+ATTRIBUTES = [
+    "external",
+    "entrypoint",
+    "native",
+    "public",
+    "static",
+    "codesize",
+    "api",
+    "user",
+]
 def plot_curve(x, y, curve_type):
     """
     Plots ROC or PRC

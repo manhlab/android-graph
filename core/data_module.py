@@ -31,7 +31,7 @@ def stratified_split_dataset(
 
 
 @torch.no_grad()
-def collate(samples: List[Tuple[dgl.DGLGraph, int]]) -> (dgl.DGLGraph, torch.Tensor):
+def collate(samples: List[Tuple[dgl.DGLGraph, int]]):
     """
     Batches several graphs into one
     :param samples: Tuple containing graph and its label
@@ -59,29 +59,9 @@ class MalwareDataModule(pl.LightningDataModule):
         pin_memory: bool,
         split_train_val: bool,
     ):
-        """
-        Creates the MalwareDataModule
-        :param train_dir: The directory containing the training samples
-        :param test_dir: The directory containing the testing samples
-        :param batch_size: Number of graphs in a batch
-        :param split_ratios: Tuple containing training and validation split
-        :param consider_features: Features types to consider
-        :param num_workers: Number of processes to
-        :param pin_memory: If True, said to be speeding up GPU data transfer
-        :param split_train_val: If true, split the train dataset into train and validation,
-                                else use test dataset for validation
-        """
         super().__init__()
         self.train_dir = Path(train_dir)
-        if not self.train_dir.exists():
-            raise FileNotFoundError(
-                f"Train directory {train_dir} does not exist. Could not read from it."
-            )
         self.test_dir = Path(test_dir)
-        if not self.test_dir.exists():
-            raise FileNotFoundError(
-                f"Test directory {test_dir} does not exist. Could not read from it."
-            )
         self.dataloader_kwargs = {
             "num_workers": num_workers,
             "batch_size": batch_size,
@@ -96,11 +76,6 @@ class MalwareDataModule(pl.LightningDataModule):
 
     @staticmethod
     def get_samples(path: Union[str, Path]) -> Tuple[List[str], Dict[str, int]]:
-        """
-        Get samples and labels from the given path
-        :param path: The directory containing graphs
-        :return: The file list, and their label mapping
-        """
         base_path = Path(path)
         if not base_path.exists():
             raise FileNotFoundError(f"{base_path} does not exist")

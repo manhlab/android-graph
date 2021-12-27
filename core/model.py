@@ -20,11 +20,8 @@ class MalwareDetector(pl.LightningModule):
         convolution_count: int,
     ):
         super().__init__()
-        supported_algorithms = ["GraphConv", "SAGEConv", "TAGConv", "DotGatConv"]
-        if convolution_algorithm not in supported_algorithms:
-            raise ValueError(
-                f"{convolution_algorithm} is not supported. Supported algorithms are {supported_algorithms}"
-            )
+        # supported_algorithms = ["GraphConv", "SAGEConv", "TAGConv", "DotGatConv"]
+        convolution_algorithm = "GraphConv"
         self.save_hyperparameters()
         self.convolution_layers = []
         convolution_dimensions = [64, 32, 16]
@@ -39,9 +36,9 @@ class MalwareDetector(pl.LightningModule):
             input_dimension = dimension
         self.convolution_layers = Sequential(*self.convolution_layers)
         self.last_dimension = input_dimension
-        self.classify = nn.Linear(247, 1)
+        self.classify = nn.Linear(247, 4)
         # Metrics
-        self.loss_func = nn.BCEWithLogitsLoss()
+        self.loss_func = nn.CrossEntropyLoss()
         self.train_metrics = self._get_metric_dict("train")
         self.val_metrics = self._get_metric_dict("val")
         self.test_metrics = self._get_metric_dict("test")
@@ -100,7 +97,7 @@ class MalwareDetector(pl.LightningModule):
         bg, label = batch
         logits = self.forward(bg)
         loss = self.loss_func(logits, label)
-        prediction = torch.sigmoid(logits)
+        # prediction = torch.softmax(logits, 1)
         # for metric_name, metric in self.train_metrics.items():
             # metric.update(prediction, label)
         self.log("train_loss", loss, on_step=True, on_epoch=True)
@@ -110,7 +107,7 @@ class MalwareDetector(pl.LightningModule):
         bg, label = batch
         logits = self.forward(bg)
         loss = self.loss_func(logits, label)
-        prediction = torch.sigmoid(logits)
+        # prediction = torch.softmax(logits, 1)
         # for metric_name, metric in self.val_metrics.items():
             # metric.update(prediction, label)
         self.log("val_loss", loss, on_step=False, on_epoch=True)
@@ -119,15 +116,16 @@ class MalwareDetector(pl.LightningModule):
     def test_step(self, batch: Tuple[dgl.DGLGraph, torch.Tensor], batch_idx: int):
         bg, label = batch
         logits = self.forward(bg)
-        prediction = torch.sigmoid(logits)
+        # prediction = torch.sigmoid(logits)
         loss = self.loss_func(logits, label)
-        for metric_name, metric in self.test_metrics.items():
-            metric.update(prediction, label)
-        for metric_name, metric in self.test_outputs.items():
-            metric.update(prediction, label)
+        # for metric_name, metric in self.test_metrics.items():
+        #     metric.update(prediction, label)
+        # for metric_name, metric in self.test_outputs.items():
+        #     metric.update(prediction, label)
         self.log("test_loss", loss, on_step=False, on_epoch=True)
         return loss
 
-    def configure_optimizers(self) -> torch.optim.Adam:
+    def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
+        return optimizer, scheduler

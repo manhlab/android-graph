@@ -7,6 +7,11 @@ data:
   split_train_val: true
   split_ratios: [0.75, 0.25]
   consider_features: method_summary
+  labels: 
+    - Adware
+    - Banking
+    - SMS
+    - Benign
 
 model:
   convolution_count: 0

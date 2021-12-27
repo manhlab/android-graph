@@ -15,17 +15,8 @@ from androguard.core.analysis.analysis import MethodAnalysis
 from androguard.core.api_specific_resources import load_permission_mappings
 from androguard.misc import AnalyzeAPK
 from pygtrie import StringTrie
+from utils import ATTRIBUTES
 
-ATTRIBUTES = [
-    "external",
-    "entrypoint",
-    "native",
-    "public",
-    "static",
-    "codesize",
-    "api",
-    "user",
-]
 package_directory = os.path.dirname(os.path.abspath(__file__))
 
 stats: Dict[str, int] = defaultdict(int)
