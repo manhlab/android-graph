@@ -1,6 +1,5 @@
 pytorch-lightning==1.2.3
-pytorch=1.9.1
-pyyaml==5.4.1
+torch==1.9.1
 networkx==1.11
 torchtext
 wandb==0.10.18
@@ -20,5 +19,4 @@ jinja2==3.0.1
 pymongo
 fastapi
 uvicorn
-pip install --pre dgl-cu110 -f https://data.dgl.ai/wheels-test/repo.html
--e git+https://github.com/androguard/androguard.git#egg=androguard
+pygtrie
