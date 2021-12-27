@@ -10,7 +10,6 @@ from pytorch_lightning.loggers import WandbLogger
 
 from core import *
 
-
 def train_model(cfg: DictConfig) -> None:
     data_module = MalwareDataModule(**cfg["data"])
 
@@ -87,6 +86,6 @@ def train_model(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    with open("config/config.yaml", "r") as f:
-        config = yaml.safe_load(f)
+    with open("/content/android-graph/config/conf.yaml", 'r') as f:
+       config = yaml.safe_load(f) 
     train_model(config)

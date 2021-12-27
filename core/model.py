@@ -10,8 +10,6 @@ import torch.nn.functional as F
 from dgl.nn import Sequential
 from pytorch_lightning.metrics import Metric
 from torch import nn
-from torch.optim import Adam
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
 class MalwareDetector(pl.LightningModule):
@@ -41,7 +39,7 @@ class MalwareDetector(pl.LightningModule):
             input_dimension = dimension
         self.convolution_layers = Sequential(*self.convolution_layers)
         self.last_dimension = input_dimension
-        self.classify = nn.Linear(input_dimension, 1)
+        self.classify = nn.Linear(247, 1)
         # Metrics
         self.loss_func = nn.BCEWithLogitsLoss()
         self.train_metrics = self._get_metric_dict("train")
@@ -103,8 +101,8 @@ class MalwareDetector(pl.LightningModule):
         logits = self.forward(bg)
         loss = self.loss_func(logits, label)
         prediction = torch.sigmoid(logits)
-        for _, metric in self.train_metrics.items():
-            metric.update(prediction, label)
+        # for metric_name, metric in self.train_metrics.items():
+            # metric.update(prediction, label)
         self.log("train_loss", loss, on_step=True, on_epoch=True)
         return loss
 
@@ -113,8 +111,8 @@ class MalwareDetector(pl.LightningModule):
         logits = self.forward(bg)
         loss = self.loss_func(logits, label)
         prediction = torch.sigmoid(logits)
-        for _, metric in self.val_metrics.items():
-            metric.update(prediction, label)
+        # for metric_name, metric in self.val_metrics.items():
+            # metric.update(prediction, label)
         self.log("val_loss", loss, on_step=False, on_epoch=True)
         return loss
 
@@ -123,14 +121,13 @@ class MalwareDetector(pl.LightningModule):
         logits = self.forward(bg)
         prediction = torch.sigmoid(logits)
         loss = self.loss_func(logits, label)
-        for _, metric in self.test_metrics.items():
+        for metric_name, metric in self.test_metrics.items():
             metric.update(prediction, label)
-        for _, metric in self.test_outputs.items():
+        for metric_name, metric in self.test_outputs.items():
             metric.update(prediction, label)
         self.log("test_loss", loss, on_step=False, on_epoch=True)
         return loss
 
-    def configure_optimizers(self):
-        optimizer = Adam(self.parameters(), lr=1e-3)
-        scheduler = CosineAnnealingLR(optimizer, T_max=3, eta_min=1e-5)
-        return optimizer, scheduler
+    def configure_optimizers(self) -> torch.optim.Adam:
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
