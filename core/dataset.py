@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple, Union
 import dgl
 import torch
 from torch.utils.data import Dataset
+import numpy as np
 
 attributes = {"external", "entrypoint", "native", "public", "static", "codesize"}
 
@@ -14,7 +15,6 @@ class MalwareDataset(Dataset):
         source_dir: Union[str, Path],
         samples: List[str],
         labels: Dict[str, int],
-        consider_features: List[str],
     ):
         self.source_dir = Path(source_dir)
         self.samples = samples
@@ -32,7 +32,7 @@ class MalwareDataset(Dataset):
             g.ndata[attribute] = g.ndata[attribute].view(-1, 1)
         return g
 
-    def __getitem__(self, index: int) -> Tuple[dgl.DGLGraph, int]:
+    def __getitem__(self, index: int):
         """Generates one sample of data"""
         name = self.samples[index]
         graphs, _ = dgl.data.utils.load_graphs(str(self.source_dir / name))
@@ -46,4 +46,6 @@ class MalwareDataset(Dataset):
             features = (g.in_degrees() + g.out_degrees()).view(-1, 1).float()
         g.ndata.clear()
         g.ndata["features"] = features
-        return g, self.labels[name]
+        label_item = np.zeros(4)
+        label_item[self.labels[name]] = 1
+        return g, label_item

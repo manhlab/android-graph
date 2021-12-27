@@ -5,16 +5,10 @@ data:
   pin_memory: false
   num_workers: 6
   split_train_val: true
-  split_ratios: [0.75, 0.25]
-  consider_features: method_summary
-  labels: 
-    - Adware
-    - Banking
-    - SMS
-    - Benign
+  split_ratios: [0.75, 0.25]  
 
 model:
-  convolution_count: 0
+  convolution_count: 2
   convolution_algorithm: GraphConv 
   input_dimension: 128
 

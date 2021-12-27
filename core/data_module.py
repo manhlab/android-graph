@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Dict, Tuple, Union
 
@@ -9,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from core.dataset import MalwareDataset
 
-
+LABELS = [ "Adware",  "Banking", "SMS", "Benign"]
 def stratified_split_dataset(
     samples: List[str], labels: Dict[str, int], ratios: Tuple[float, float]
 ) -> Tuple[List[str], List[str]]:
@@ -54,7 +55,6 @@ class MalwareDataModule(pl.LightningDataModule):
         test_dir: Union[str, Path],
         batch_size: int,
         split_ratios: Tuple[float, float],
-        consider_features: List[str],
         num_workers: int,
         pin_memory: bool,
         split_train_val: bool,
@@ -72,19 +72,20 @@ class MalwareDataModule(pl.LightningDataModule):
         self.split_ratios = split_ratios
         self.split = split_train_val
         self.splitter = stratified_split_dataset
-        self.consider_features = consider_features
 
     @staticmethod
     def get_samples(path: Union[str, Path]) -> Tuple[List[str], Dict[str, int]]:
         base_path = Path(path)
         if not base_path.exists():
             raise FileNotFoundError(f"{base_path} does not exist")
-        apk_list = sorted([x for x in base_path.iterdir()])
+        apk_dir = os.listdir(base_path)
         samples = []
         labels = {}
-        for apk in apk_list:
-            samples.append(apk.name)
-            labels[apk.name] = int("Benig" not in apk.name)
+        for f in apk_dir:
+            apk_list = sorted([x for x in Path(os.path.join(base_path, f)).iterdir()])
+            for apk in apk_list:
+                samples.append(apk.name)
+                labels[apk.name] = int(LABELS.index(apk.name))
         return samples, labels
 
     def setup(self, stage=None):
@@ -104,19 +105,16 @@ class MalwareDataModule(pl.LightningDataModule):
             source_dir=self.train_dir,
             samples=train_samples,
             labels=labels,
-            consider_features=self.consider_features,
         )
         self.val_dataset = MalwareDataset(
             source_dir=val_dir,
             samples=val_samples,
             labels=val_labels,
-            consider_features=self.consider_features,
         )
         self.test_dataset = MalwareDataset(
             source_dir=self.test_dir,
             samples=test_samples,
             labels=test_labels,
-            consider_features=self.consider_features,
         )
 
     def train_dataloader(self):

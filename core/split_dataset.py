@@ -10,8 +10,6 @@ import pandas as pd
 
 def extract_stats(file: str):
     file = Path(file)
-    if not file.exists():
-        raise ValueError(f"{file} doesn't exist")
     result = {}
     graphs, labels = dgl.data.utils.load_graphs(str(file))
     graph: dgl.DGLGraph = graphs[0]
