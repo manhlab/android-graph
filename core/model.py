@@ -36,19 +36,19 @@ class MalwareDetector(pl.LightningModule):
             input_dimension = dimension
         self.convolution_layers = Sequential(*self.convolution_layers)
         self.last_dimension = input_dimension
-        self.classify = nn.Linear(247, 4)
+        self.classify = nn.Linear(16, 5)
         # Metrics
         self.loss_func = nn.CrossEntropyLoss()
-        self.train_metrics = self._get_metric_dict("train")
-        self.val_metrics = self._get_metric_dict("val")
-        self.test_metrics = self._get_metric_dict("test")
-        self.test_outputs = nn.ModuleDict(
-            {
-                "confusion_matrix": metrics.ConfusionMatrix(num_classes=2),
-                "prc": metrics.PrecisionRecallCurve(compute_on_step=False),
-                "roc": metrics.ROC(compute_on_step=False),
-            }
-        )
+#        self.train_metrics = self._get_metric_dict("train")
+#        self.val_metrics = self._get_metric_dict("val")
+#        self.test_metrics = self._get_metric_dict("test")
+#        self.test_outputs = nn.ModuleDict(
+#            {
+#                "confusion_matrix": metrics.ConfusionMatrix(num_classes=2),
+#                "prc": metrics.PrecisionRecallCurve(compute_on_step=False),
+#                "roc": metrics.ROC(compute_on_step=False),
+#            }
+#        )
 
     @staticmethod
     def _get_convolution_layer(
@@ -87,26 +87,24 @@ class MalwareDetector(pl.LightningModule):
             h = g.ndata["features"]
             h = self.convolution_layers(g, h)
             g.ndata["h"] = h if len(self.convolution_layers) > 0 else h[0]
-            # Calculate graph representation by averaging all the node representations.
             hg = dgl.mean_nodes(g, "h")
             return self.classify(hg).squeeze()
 
     def training_step(
-        self, batch: Tuple[dgl.DGLGraph, torch.Tensor], batch_idx: int
-    ) -> torch.Tensor:
+        self, batch: Tuple[dgl.DGLGraph, torch.Tensor], batch_idx: int):
         bg, label = batch
         logits = self.forward(bg)
-        loss = self.loss_func(logits, label)
-        # prediction = torch.softmax(logits, 1)
-        # for metric_name, metric in self.train_metrics.items():
-            # metric.update(prediction, label)
+        loss = self.loss_func(logits, label.long())
+#        prediction = torch.softmax(logits, 1)
+#        for metric_name, metric in self.train_metrics.items():
+#            metric.update(prediction, label)
         self.log("train_loss", loss, on_step=True, on_epoch=True)
         return loss
 
     def validation_step(self, batch: Tuple[dgl.DGLGraph, torch.Tensor], batch_idx: int):
         bg, label = batch
         logits = self.forward(bg)
-        loss = self.loss_func(logits, label)
+        loss = self.loss_func(logits, label.long())
         # prediction = torch.softmax(logits, 1)
         # for metric_name, metric in self.val_metrics.items():
             # metric.update(prediction, label)
@@ -116,7 +114,6 @@ class MalwareDetector(pl.LightningModule):
     def test_step(self, batch: Tuple[dgl.DGLGraph, torch.Tensor], batch_idx: int):
         bg, label = batch
         logits = self.forward(bg)
-        # prediction = torch.sigmoid(logits)
         loss = self.loss_func(logits, label)
         # for metric_name, metric in self.test_metrics.items():
         #     metric.update(prediction, label)
@@ -127,5 +124,5 @@ class MalwareDetector(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
-        return optimizer, scheduler
+        #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
+        return optimizer #], [scheduler]

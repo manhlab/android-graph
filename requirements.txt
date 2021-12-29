@@ -1,7 +1,5 @@
 pytorch-lightning==1.2.3
 torch==1.9.1
-networkx==1.11
-torchtext
 wandb==0.10.18
 plotly==4.14.3
 scikit-learn==0.24.1

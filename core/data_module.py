@@ -7,10 +7,10 @@ import pytorch_lightning as pl
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
-
+import pandas as pd
 from core.dataset import MalwareDataset
 
-LABELS = [ "Adware",  "Banking", "SMS", "Benign"]
+LABELS = [ "Adware",  "Banking", "SMS", "Benign", "Riskware"]
 def stratified_split_dataset(
     samples: List[str], labels: Dict[str, int], ratios: Tuple[float, float]
 ) -> Tuple[List[str], List[str]]:
@@ -74,45 +74,43 @@ class MalwareDataModule(pl.LightningDataModule):
         self.splitter = stratified_split_dataset
 
     @staticmethod
-    def get_samples(path: Union[str, Path]) -> Tuple[List[str], Dict[str, int]]:
-        base_path = Path(path)
-        if not base_path.exists():
-            raise FileNotFoundError(f"{base_path} does not exist")
-        apk_dir = os.listdir(base_path)
+    def get_samples(path: List[str]) -> Tuple[List[str], Dict[str, int]]:
         samples = []
         labels = {}
-        for f in apk_dir:
-            apk_list = sorted([x for x in Path(os.path.join(base_path, f)).iterdir()])
-            for apk in apk_list:
-                samples.append(apk.name)
-                labels[apk.name] = int(LABELS.index(apk.name))
+        for apk in path:
+            name = apk.split('/')[-1]
+            samples.append(name)
+            labels[name] = int(LABELS.index(apk.split('/')[1]))
         return samples, labels
 
     def setup(self, stage=None):
-        samples, labels = self.get_samples(self.train_dir)
-        test_samples, test_labels = self.get_samples(self.test_dir)
-        if self.split:
-            train_samples, val_samples = self.splitter(
-                samples, labels, self.split_ratios
-            )
-            val_dir = self.train_dir
-            val_labels = labels
-        else:
-            train_samples = samples
-            val_dir = self.test_dir
-            val_samples, val_labels = test_samples, test_labels
+        df = pd.read_csv("dataset.csv")
+        train_list = df[df['fold']!= 0].file.tolist()
+        test_list = df[df['fold']== 0].file.tolist()
+        samples, labels = self.get_samples(train_list)
+        test_samples, test_labels = self.get_samples(test_list)
+#         if self.split:
+#             train_samples, val_samples = self.splitter(
+#                 samples, labels, self.split_ratios
+#             )
+#             val_dir = self.train_dir
+#             val_labels = labels
+#         else:
+#             train_samples = samples
+#             val_dir = self.test_dir
+#             val_samples, val_labels = test_samples, test_labels
         self.train_dataset = MalwareDataset(
-            source_dir=self.train_dir,
-            samples=train_samples,
+            source_dir=train_list,
+            samples=samples,
             labels=labels,
         )
         self.val_dataset = MalwareDataset(
-            source_dir=val_dir,
-            samples=val_samples,
-            labels=val_labels,
+            source_dir=test_list,
+            samples=test_samples,
+            labels=test_labels,
         )
         self.test_dataset = MalwareDataset(
-            source_dir=self.test_dir,
+            source_dir=test_list,
             samples=test_samples,
             labels=test_labels,
         )
