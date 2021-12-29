@@ -14,6 +14,8 @@ ATTRIBUTES = [
     "api",
     "user",
 ]
+
+
 def plot_curve(x, y, curve_type):
     """
     Plots ROC or PRC

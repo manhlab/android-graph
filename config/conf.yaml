@@ -1,11 +1,8 @@
 data:
-  train_dir: /content/data2
-  test_dir: /content/test2
+  data_src: dataset.csv
   batch_size: 12
   pin_memory: true
   num_workers: 2
-  split_train_val: false
-  split_ratios: [0.8, 0.2]  
 
 model:
   convolution_count: 4

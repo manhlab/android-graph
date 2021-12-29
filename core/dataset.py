@@ -1,10 +1,8 @@
-from pathlib import Path
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict
 
 import dgl
 import torch
 from torch.utils.data import Dataset
-import numpy as np
 
 attributes = {"external", "entrypoint", "native", "public", "static", "codesize"}
 
@@ -19,18 +17,11 @@ class MalwareDataset(Dataset):
         self.source_dir = source_dir
         self.samples = samples
         self.labels = labels
-        self.consider_features = ['user', 'api']
-
+        self.consider_features = ["user", "api"]
 
     def __len__(self) -> int:
         """Denotes the total number of samples"""
         return len(self.samples)
-
-    @staticmethod
-    def _process_node_attributes(g: dgl.DGLGraph):
-        for attribute in attributes & set(g.ndata.keys()):
-            g.ndata[attribute] = g.ndata[attribute].view(-1, 1)
-        return g
 
     def __getitem__(self, index: int):
         """Generates one sample of data"""
@@ -41,8 +32,8 @@ class MalwareDataset(Dataset):
             g = self._process_node_attributes(graph)
             if len(g.ndata.keys()) > 0:
                 features = torch.cat(
-                [g.ndata[x] for x in self.consider_features], dim=1
-            ).float()
+                    [g.ndata[x] for x in self.consider_features], dim=1
+                ).float()
             else:
                 features = (g.in_degrees() + g.out_degrees()).view(-1, 1).float()
             g.ndata.clear()
@@ -50,6 +41,9 @@ class MalwareDataset(Dataset):
             return g, torch.tensor(self.labels[name])
         except:
             print(self.samples[index])
-            
-        
-        
+
+    @staticmethod
+    def _process_node_attributes(g: dgl.DGLGraph):
+        for attribute in attributes & set(g.ndata.keys()):
+            g.ndata[attribute] = g.ndata[attribute].view(-1, 1)
+        return g
