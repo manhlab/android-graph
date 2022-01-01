@@ -19,7 +19,7 @@ class MalwareDataset(Dataset):
 
     def __len__(self) -> int:
         """Denotes the total number of samples"""
-        return len(self.samples)
+        return len(self.labels)
 
     def __getitem__(self, index: int):
         """Generates one sample of data"""

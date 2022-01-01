@@ -7,7 +7,7 @@ class CFG:
     data_dim = 49  # dimension of a vector
     num_classes = 2  # 2 classes
     batch_size = 256
-    input_dimension = 128  # number of units by layer
+    input_dimension = 247  # number of units by layer
     convolution_count = 3
     convolution_algorithm = "GraphConv"
     epochs = 15

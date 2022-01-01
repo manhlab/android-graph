@@ -1,18 +1,13 @@
 import warnings
 import sklearn.exceptions
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
-from typing import Dict, List, Union, Optional
+
 
 # General
 from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
 import gc
-from sklearn.model_selection import StratifiedKFold
 import os
 
 # Deep Learning
@@ -20,15 +15,15 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import wandb
-from core.utils import AverageMeter, wandb_id_generator, seed_everything
-from core.config import CFG
-from core.dataset import MalwareDataset
-from core.model import MalwareDetector
+from core import *
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
 
 gc.enable()
 seed_everything(CFG.RANDOM_SEED)
 CFG.HASH_NAME = wandb_id_generator(size=12)
-LABELS = ["Adware", "Banking", "SMS", "Benign", "Riskware"]
 # Device Optimization
 if torch.cuda.is_available():
     CFG.device = str(torch.device("cuda"))
@@ -45,7 +40,7 @@ def train_fn(train_loader, model, criterion, optimizer, epoch, scheduler):
         labels = labels.to(CFG.device)
         batch_size = labels.size(0)
         output = model(malware)
-        loss = criterion(output, labels)
+        loss = criterion(output, labels.long())
         losses.update(loss.item(), batch_size)
         loss.backward()
         if (step + 1) % CFG.gradient_accumulation_steps == 0:
@@ -65,12 +60,12 @@ def val_fn(val_loader, model, criterion, epoch):
     bar = tqdm(enumerate(val_loader), total=len(val_loader))
     labels_list = []
     prediction_list = []
-    for step, (malware, labels) in bar:
+    for _, (malware, labels) in bar:
         malware = malware.to(CFG.device)
         labels = labels.to(CFG.device)
         batch_size = labels.size(0)
         output = model(malware)
-        loss = criterion(output, labels)
+        loss = criterion(output, labels.long())
         losses.update(loss.item(), batch_size)
 
         bar.set_postfix(Epoch=epoch, Val_Loss=losses.avg)
@@ -84,15 +79,6 @@ def val_fn(val_loader, model, criterion, epoch):
     print(f"============Valid Accuracy: {accuracy}=========")
     print(f"============Valid F1: {f1}=========")
     return losses.avg
-
-
-def get_labels(path: List[str]):
-    labels = []
-    for apk in path:
-        name = apk.split("/")[-1]
-        labels.append(int(LABELS.index(name)))
-    return labels
-
 
 def loop(df, CFG):
     run = wandb.init(
@@ -126,6 +112,7 @@ def loop(df, CFG):
         num_workers=CFG.num_workers,
         pin_memory=True,
         drop_last=True,
+        collate_fn=collate_func
     )
     valid_loader = DataLoader(
         val_dataset,
@@ -134,6 +121,7 @@ def loop(df, CFG):
         num_workers=CFG.num_workers,
         pin_memory=True,
         drop_last=False,
+        collate_fn=collate_func
     )
 
     model = MalwareDetector(
