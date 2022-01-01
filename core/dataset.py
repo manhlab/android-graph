@@ -11,11 +11,9 @@ class MalwareDataset(Dataset):
     def __init__(
         self,
         source_dir: List[str],
-        samples: List[str],
-        labels: Dict[str, int],
+        labels: List[int],
     ):
         self.source_dir = source_dir
-        self.samples = samples
         self.labels = labels
         self.consider_features = ["user", "api"]
 
@@ -25,7 +23,6 @@ class MalwareDataset(Dataset):
 
     def __getitem__(self, index: int):
         """Generates one sample of data"""
-        name = self.samples[index]
         try:
             graphs, _ = dgl.data.utils.load_graphs(str(self.source_dir[index]))
             graph: dgl.DGLGraph = dgl.add_self_loop(graphs[0])
@@ -38,7 +35,7 @@ class MalwareDataset(Dataset):
                 features = (g.in_degrees() + g.out_degrees()).view(-1, 1).float()
             g.ndata.clear()
             g.ndata["features"] = features
-            return g, torch.tensor(self.labels[name])
+            return g, torch.tensor(self.labels[index])
         except:
             print(self.samples[index])
 

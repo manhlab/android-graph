@@ -1,8 +1,8 @@
 data:
   data_src: dataset.csv
-  batch_size: 12
+  batch_size: 4
   pin_memory: true
-  num_workers: 2
+  num_workers: 40
 
 model:
   convolution_count: 4
@@ -11,7 +11,7 @@ model:
 
 trainer:
   max_epochs: 30
-  gpus: null
+  gpus: 1
 
 defaults:
   - features: degree

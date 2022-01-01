@@ -1,41 +1,187 @@
+import warnings
+import sklearn.exceptions
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
+from typing import Dict, List, Union, Optional
+
+# General
+from tqdm.auto import tqdm
+import pandas as pd
+import numpy as np
+import gc
+from sklearn.model_selection import StratifiedKFold
 import os
-from pathlib import Path
-import yaml
-import wandb
+
+# Deep Learning
 import torch
-from omegaconf import DictConfig
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
+import torch.nn as nn
+from torch.utils.data import DataLoader
+import wandb
+from core.utils import AverageMeter, wandb_id_generator, seed_everything
+from core.config import CFG
+from core.dataset import MalwareDataset
+from core.model import MalwareDetector
 
-from core import *
+gc.enable()
+seed_everything(CFG.RANDOM_SEED)
+CFG.HASH_NAME = wandb_id_generator(size=12)
+LABELS = ["Adware", "Banking", "SMS", "Benign", "Riskware"]
+# Device Optimization
+if torch.cuda.is_available():
+    CFG.device = str(torch.device("cuda"))
+else:
+    CFG.device = str(torch.device("cpu"))
 
 
-def train_model(cfg: DictConfig) -> None:
-    data_module = MalwareDataModule(**cfg["data"])
-    model = MalwareDetector(**cfg["model"])
-    callbacks = [
-        ModelCheckpoint(
-            dirpath=os.getcwd(),
-            filename=str("{epoch:02d}-{val_loss:.2f}.pt"),
-            monitor="val_loss",
-            mode="min",
-            save_last=True,
-            save_top_k=-1,
+def train_fn(train_loader, model, criterion, optimizer, epoch, scheduler):
+    model.train()
+    losses = AverageMeter()
+    bar = tqdm(enumerate(train_loader), total=len(train_loader))
+    for step, (malware, labels) in bar:
+        malware = malware.to(CFG.device)
+        labels = labels.to(CFG.device)
+        batch_size = labels.size(0)
+        output = model(malware)
+        loss = criterion(output, labels)
+        losses.update(loss.item(), batch_size)
+        loss.backward()
+        if (step + 1) % CFG.gradient_accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+            scheduler.step()
+        bar.set_postfix(
+            Epoch=epoch, Train_Loss=losses.avg, LR=optimizer.param_groups[0]["lr"]
         )
-    ]
+    return losses.avg
 
-    trainer_kwargs = dict(cfg["trainer"])
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model, datamodule=data_module)
 
-    # print(f"Using checkpoint {ckpt_path} for testing.")
-    # model = MalwareDetector.load_from_checkpoint(ckpt_path, **cfg["model"])
-    # trainer.test(model, datamodule=data_module, verbose=True)
-    wandb.finish()
+@torch.no_grad()
+def val_fn(val_loader, model, criterion, epoch):
+    model.eval()
+    losses = AverageMeter()
+    bar = tqdm(enumerate(val_loader), total=len(val_loader))
+    labels_list = []
+    prediction_list = []
+    for step, (malware, labels) in bar:
+        malware = malware.to(CFG.device)
+        labels = labels.to(CFG.device)
+        batch_size = labels.size(0)
+        output = model(malware)
+        loss = criterion(output, labels)
+        losses.update(loss.item(), batch_size)
+
+        bar.set_postfix(Epoch=epoch, Val_Loss=losses.avg)
+        labels_list.append(np.argmax(labels.detach().cpu().numpy(), axis=1))
+        prediction_list.append(np.argmax(output.detach().cpu().numpy(), axis=1))
+
+    labels_list = np.hstack(labels_list)
+    prediction_list = np.hstack(prediction_list)
+    accuracy = sklearn.metrics.accuracy_score(labels_list, prediction_list)
+    f1 = sklearn.metrics.f1_score(labels_list, prediction_list, average="macro")
+    print(f"============Valid Accuracy: {accuracy}=========")
+    print(f"============Valid F1: {f1}=========")
+    return losses.avg
+
+
+def get_labels(path: List[str]):
+    labels = []
+    for apk in path:
+        name = apk.split("/")[-1]
+        labels.append(int(LABELS.index(name)))
+    return labels
+
+
+def loop(df, CFG):
+    run = wandb.init(
+        project="PRMalware",
+        job_type="Train",
+        tags=["lstm", f"{CFG.HASH_NAME}", "crossentropyloss"],
+        name=f"{CFG.HASH_NAME}",
+        anonymous="must",
+    )
+
+    print(f"========== Start training ==========")
+
+    trn_idx = df[df["fold"] != 0].index
+    val_idx = df[df["fold"] == 0].index
+
+    train_folds = df.loc[trn_idx].reset_index(drop=True)
+    valid_folds = df.loc[val_idx].reset_index(drop=True)
+    train_labels = get_labels(train_folds.file.tolist())
+    test_labels = get_labels(valid_folds.file.tolist())
+    train_dataset = MalwareDataset(
+        source_dir=train_folds.file.tolist(), labels=train_labels
+    )
+    val_dataset = MalwareDataset(
+        source_dir=valid_folds.file.tolist(), labels=test_labels
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=CFG.batch_size,
+        shuffle=True,
+        num_workers=CFG.num_workers,
+        pin_memory=True,
+        drop_last=True,
+    )
+    valid_loader = DataLoader(
+        val_dataset,
+        batch_size=CFG.batch_size,
+        shuffle=False,
+        num_workers=CFG.num_workers,
+        pin_memory=True,
+        drop_last=False,
+    )
+
+    model = MalwareDetector(
+        input_dimension=CFG.input_dimension,
+        convolution_algorithm=CFG.convolution_algorithm,
+        convolution_count=CFG.convolution_count,
+    )
+    model.to(CFG.device)
+    wandb.watch(model, log_freq=100)
+    optimizer = torch.optim.Adam(model.parameters(), lr=CFG.lr, eps=1e-7)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=CFG.T_max, eta_min=1e-4
+    )
+
+    criterion = nn.CrossEntropyLoss()
+    best_score = 1
+    for epoch in range(CFG.epochs):
+        # train
+        train_epoch_loss = train_fn(
+            train_loader, model, criterion, optimizer, epoch, scheduler
+        )
+        val_epoch_loss = val_fn(valid_loader, model, criterion, epoch)
+        # Log the metrics
+        wandb.log({"Train Loss": train_epoch_loss})
+        wandb.log({"Valid Loss": val_epoch_loss})
+
+        if val_epoch_loss < best_score:
+            best_score = val_epoch_loss
+            run.summary["Best Loss"] = best_score
+            print(f"Epoch {epoch+1} - Save Best Score: {val_epoch_loss:.4f} Model")
+            torch.save(
+                model.state_dict(),
+                os.path.join(CFG.model_path, f"/{CFG.convolution_algorithm}_best.pth"),
+            )
+    run.finish()
+    torch.cuda.empty_cache()
+    gc.collect()
+    del model, optimizer, scheduler
+    return best_score
 
 
 if __name__ == "__main__":
-    with open("android-graph/config/conf.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    train_model(config)
+    print(f"Using device: {CFG.device}")
+    try:
+        api_key = CFG.WANDB_KEY
+        wandb.login(key=api_key)
+        anony = None
+    except:
+        anony = "must"
+    df = pd.read_csv("dataset.csv")
+    loop(df, CFG)
