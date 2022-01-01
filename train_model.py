@@ -2,7 +2,6 @@ import warnings
 import sklearn.exceptions
 
 
-
 # General
 from tqdm.auto import tqdm
 import pandas as pd
@@ -16,6 +15,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import wandb
 from core import *
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -69,7 +69,7 @@ def val_fn(val_loader, model, criterion, epoch):
         losses.update(loss.item(), batch_size)
 
         bar.set_postfix(Epoch=epoch, Val_Loss=losses.avg)
-        labels_list.append(np.argmax(labels.detach().cpu().numpy(), axis=1))
+        labels_list.append(labels.detach().cpu().numpy())
         prediction_list.append(np.argmax(output.detach().cpu().numpy(), axis=1))
 
     labels_list = np.hstack(labels_list)
@@ -79,6 +79,7 @@ def val_fn(val_loader, model, criterion, epoch):
     print(f"============Valid Accuracy: {accuracy}=========")
     print(f"============Valid F1: {f1}=========")
     return losses.avg
+
 
 def loop(df, CFG):
     run = wandb.init(
@@ -112,7 +113,7 @@ def loop(df, CFG):
         num_workers=CFG.num_workers,
         pin_memory=True,
         drop_last=True,
-        collate_fn=collate_func
+        collate_fn=collate_func,
     )
     valid_loader = DataLoader(
         val_dataset,
@@ -121,7 +122,7 @@ def loop(df, CFG):
         num_workers=CFG.num_workers,
         pin_memory=True,
         drop_last=False,
-        collate_fn=collate_func
+        collate_fn=collate_func,
     )
 
     model = MalwareDetector(

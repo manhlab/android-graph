@@ -8,6 +8,7 @@ import dgl
 
 LABELS = ["Adware", "Banking", "SMS", "Benign", "Riskware"]
 
+
 def wandb_id_generator(size=12, chars=string.ascii_lowercase + string.digits):
     return "".join(random.SystemRandom().choice(chars) for _ in range(size))
 
@@ -45,12 +46,14 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+
 def get_labels(path: List[str]):
     labels = []
     for apk in path:
         name = apk.split("/")[-2]
         labels.append(int(LABELS.index(name)))
     return labels
+
 
 @torch.no_grad()
 def collate_func(samples: List[Tuple[dgl.DGLGraph, int]]):
