@@ -1,6 +1,6 @@
 import warnings
 import sklearn.exceptions
-import sklearn
+from sklearn import metrics
 
 # General
 from tqdm.auto import tqdm
@@ -74,18 +74,18 @@ def val_fn(val_loader, model, criterion, epoch):
 
     labels_list = np.hstack(labels_list)
     prediction_list = np.hstack(prediction_list)
-    accuracy = sklearn.metrics.accuracy_score(labels_list, prediction_list)
-    f1 = sklearn.metrics.f1_score(labels_list, prediction_list, average="macro")
+    accuracy = metrics.accuracy_score(labels_list, prediction_list)
+    f1 = metrics.f1_score(labels_list, prediction_list, average="macro")
     print(f"============Valid Accuracy: {accuracy}=========")
     print(f"============Valid F1: {f1}=========")
     return losses.avg
 
 
-def loop(df, CFG):
+def main_loop(df, CFG):
     run = wandb.init(
-        project="PRMalware",
+        project="Android-Graph",
         job_type="Train",
-        tags=["lstm", f"{CFG.HASH_NAME}", "crossentropyloss"],
+        tags=["gcn", f"{CFG.HASH_NAME}", "Crossentropyloss"],
         name=f"{CFG.HASH_NAME}",
         anonymous="must",
     )
@@ -173,4 +173,4 @@ if __name__ == "__main__":
     except:
         anony = "must"
     df = pd.read_csv("dataset.csv")
-    loop(df, CFG)
+    main_loop(df, CFG)
