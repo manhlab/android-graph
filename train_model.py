@@ -1,6 +1,6 @@
 import warnings
 import sklearn.exceptions
-
+import sklearn
 
 # General
 from tqdm.auto import tqdm
