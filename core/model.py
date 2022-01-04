@@ -2,7 +2,6 @@ from typing import Tuple, Optional
 
 import dgl
 import dgl.nn.pytorch as graph_nn
-import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 from dgl.nn import Sequential
