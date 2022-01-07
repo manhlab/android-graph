@@ -78,7 +78,7 @@ def val_fn(val_loader, model, criterion, epoch):
     f1 = metrics.f1_score(labels_list, prediction_list, average="macro")
     print(f"============Valid Accuracy: {accuracy}=========")
     print(f"============Valid F1: {f1}=========")
-    return losses.avg
+    return losses.avg, f1
 
 
 def main_loop(df, CFG):
@@ -144,10 +144,12 @@ def main_loop(df, CFG):
         train_epoch_loss = train_fn(
             train_loader, model, criterion, optimizer, epoch, scheduler
         )
-        val_epoch_loss = val_fn(valid_loader, model, criterion, epoch)
+        val_epoch_loss, val_f1 = val_fn(valid_loader, model, criterion, epoch)
         # Log the metrics
         wandb.log({"Train Loss": train_epoch_loss})
         wandb.log({"Valid Loss": val_epoch_loss})
+        wandb.log({"Val F1 ": val_f1})
+        
 
         if val_epoch_loss < best_score:
             best_score = val_epoch_loss
