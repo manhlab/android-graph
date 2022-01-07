@@ -25,11 +25,7 @@ gc.enable()
 seed_everything(CFG.RANDOM_SEED)
 CFG.HASH_NAME = wandb_id_generator(size=12)
 # Device Optimization
-if torch.cuda.is_available():
-    CFG.device = str(torch.device("cuda"))
-else:
-    CFG.device = str(torch.device("cpu"))
-
+CFG.device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def train_fn(train_loader, model, criterion, optimizer, epoch, scheduler):
     model.train()
@@ -121,7 +117,7 @@ def main_loop(df, CFG):
         shuffle=False,
         num_workers=CFG.num_workers,
         pin_memory=True,
-        drop_last=False,
+        drop_last=True,
         collate_fn=collate_func,
     )
 
