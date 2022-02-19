@@ -4,7 +4,7 @@ import os
 class CFG:
     # configs for training
     RANDOM_SEED = 42
-    input_dimension = 247  # number of units by layer
+    input_dimension = 248  # number of units by layer
     convolution_count = 3
     convolution_algorithm = "GraphConv"
     epochs = 15

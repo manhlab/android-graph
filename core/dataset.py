@@ -15,7 +15,7 @@ class MalwareDataset(Dataset):
     ):
         self.source_dir = source_dir
         self.labels = labels
-        self.consider_features = ["user", "api"]
+        self.consider_features = ["user","entrypoint", "api"]
 
     def __len__(self) -> int:
         """Denotes the total number of samples"""
