@@ -34,7 +34,7 @@ async def get_dashboard(request: Request, hash: str):
     )
 
 @app.get("/predict", response_class=Checkcode)
-async def get_dashboard(request: Request):
+async def get_predict(request: Request):
     return inference(request)
 
 if __name__ == "__main__":
