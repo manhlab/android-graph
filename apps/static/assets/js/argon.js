@@ -916,10 +916,10 @@ var SalesChart = (function() {
         }
       },
       data: {
-        labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        labels: ['Adware', 'Banking', 'SMS', 'Benign', 'Riskware'],
         datasets: [{
           label: 'Performance',
-          data: [0, 20, 10, 30, 15, 40, 20, 60, 60]
+          data: [0.0050, 0.0032596, 0.99989, 0.0044247, 0.0010646]
         }]
       }
     });

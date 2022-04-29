@@ -202,25 +202,25 @@ class FeatureExtractors:
         )
         return feature_vector
 
-    @staticmethod
-    @memoize
-    def get_user_features(user: MethodAnalysis) -> Optional[torch.Tensor]:
-        if user.is_external():
-            return None
-        opcode_mapping = FeatureExtractors._get_opcode_mapping()
-        opcode_groups = set()
-        for instr in user.get_method().get_instructions():
-            instruction_type = FeatureExtractors._get_instruction_type(
-                instr.get_op_value()
-            )
-            instruction_id = opcode_mapping[instruction_type]
-            if instruction_id >= 0:
-                opcode_groups.add(instruction_id)
-        # 1 subtraction for 'invalid' opcode group
-        feature_vector = FeatureExtractors._mapping_to_bitstring(
-            list(opcode_groups), len(opcode_mapping) - 1
+@staticmethod
+@memoize
+def get_user_features(user: MethodAnalysis) -> Optional[torch.Tensor]:
+    if user.is_external():
+        return None
+    opcode_mapping = FeatureExtractors._get_opcode_mapping()
+    opcode_groups = set()
+    for instr in user.get_method().get_instructions():
+        instruction_type = FeatureExtractors._get_instruction_type(
+            instr.get_op_value()
         )
-        return torch.LongTensor(feature_vector)
+        instruction_id = opcode_mapping[instruction_type]
+        if instruction_id >= 0:
+            opcode_groups.add(instruction_id)
+    # 1 subtraction for 'invalid' opcode group
+    feature_vector = FeatureExtractors._mapping_to_bitstring(
+        list(opcode_groups), len(opcode_mapping) - 1
+    )
+    return torch.LongTensor(feature_vector)
 
 
 def process(source_file: Path, dest_dir: Path):

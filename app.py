@@ -30,6 +30,13 @@ async def get_dashboard(request: Request):
 
     return app
 
+@app.get("/predict", response_class=HTMLResponse)
+async def get_dashboard(request: Request):
+    return templates.TemplateResponse(
+        name="dashboard.html", context={"request": request}
+    )
+
+    return app
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host=os.getenv("HOST_ADDRESS"), port=int(os.getenv("PORT")))
